@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import json
-import os
+import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 RED = "\033[0;31m"
@@ -25,7 +26,6 @@ def load_rollout(path):
     return rollout_id, screens
 
 
-# Load th current rollout
 if not Path("current-rollout.json").exists():
     err("current-rollout.json not found")
     sys.exit(1)
@@ -43,36 +43,60 @@ if not rollout_id:
 ok(f"Rollout ID: {rollout_id}")
 print(f"   Screens:  {len(screens)}")
 
-# Diff against the most recent archive
+# Back up current-rollout.json before the user makes changes
 archive_dir = Path("archive")
 archive_dir.mkdir(exist_ok=True)
 
-previous_archives = sorted(archive_dir.glob("*.json"), key=os.path.getmtime)
-if previous_archives:
-    prev_id, prev_screens = load_rollout(previous_archives[-1])
-    prev_set, curr_set = set(prev_screens), set(screens)
-    added = curr_set - prev_set
-    removed = prev_set - curr_set
-    if added or removed:
-        print(f"\n   vs {previous_archives[-1].name}:")
-        for s in sorted(added):   print(f"   {GREEN}+ {s}{NC}")
-        for s in sorted(removed): print(f"   {RED}- {s}{NC}")
-    else:
-        print(f"   No screen ID changes vs {previous_archives[-1].name}")
+date_str = date.today().strftime("%y%m%d")
+rollout_slug = rollout_id.replace(":", "-")
 
-# Create archive
-archive_name = rollout_id.replace(":", "-") + ".json"
-archive_path = archive_dir / archive_name
+version = 0
+# Determine the version number for this date
+while True:
+    archive_name = f"{date_str}-{version}-{rollout_slug}.json"
+    archive_path = archive_dir / archive_name
+    if not archive_path.exists():
+        break
+    version += 1
 
-if archive_path.exists():
-    answer = input(f"\n{YELLOW}{archive_path} already exists. Overwrite? (y/N): {NC}").strip().lower()
-    if answer != "y":
-        print("Aborted.")
-        sys.exit(0)
+if version > 0:
+    # If we already have a version 0 for this date, prompt the user whether to overwrite or create a new version.
+    answer = input(f"\n{YELLOW}{archive_path.parent / f'{date_str}-{version - 1}-{rollout_slug}.json'} already exists. Overwrite? (y/N): {NC}").strip().lower()
+    if answer == "y":
+        version -= 1
+        archive_name = f"{date_str}-{version}-{rollout_slug}.json"
+        archive_path = archive_dir / archive_name
 
-import shutil
 shutil.copy("current-rollout.json", archive_path)
-ok(f"Archived to {archive_path}")
+ok(f"Backed up to {archive_path}")
+
+# Prompt user to make their changes
+input(f"\n{BLUE}Make your changes to current-rollout.json, then press Enter to continue...{NC}")
+
+# Load the updated rollout
+try:
+    new_rollout_id, new_screens = load_rollout("current-rollout.json")
+except (json.JSONDecodeError, KeyError) as e:
+    err(f"Failed to parse current-rollout.json: {e}")
+    sys.exit(1)
+
+if not new_rollout_id:
+    err("Rollout ID not found")
+    sys.exit(1)
+
+ok(f"Updated Rollout ID: {new_rollout_id}")
+print(f"   Screens:  {len(new_screens)}")
+
+# Diff new vs backup
+prev_set, curr_set = set(screens), set(new_screens)
+added = curr_set - prev_set
+removed = prev_set - curr_set
+if added or removed:
+    print(f"\n   vs {archive_path.name}:")
+    for s in sorted(added):   print(f"   {GREEN}+ {s}{NC}")
+    for s in sorted(removed): print(f"   {RED}- {s}{NC}")
+else:
+    print(f"   No screen ID changes vs {archive_path.name}")
 
 # Commit + push
 answer = input("\nCommit? (y/N): ").strip().lower()
@@ -85,7 +109,7 @@ if result.returncode != 0:
     sys.exit(1)
 
 subprocess.run(["git", "add", "current-rollout.json", str(archive_path)], check=True)
-commit_msg = f"Update rollout: {rollout_id}\n\nArchive: {archive_name}"
+commit_msg = f"Update rollout: {new_rollout_id}\n\nArchive: {archive_name}"
 subprocess.run(["git", "commit", "-m", commit_msg], check=True)
 ok("Committed")
 
