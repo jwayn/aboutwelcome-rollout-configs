@@ -17,17 +17,23 @@ aboutwelcome-rollout-configs/
 ├── README.md
 ├── current-rollout.json
 ├── rollout.py
-└── archive/  # Historical configs by rollout ID
+└── archive/  # Historical configs named YYMMDD-N-rollout-id.json
 ```
 
 ## How to Update
 
-1. Replace `current-rollout.json` with the new rollout JSON from Experimenter
-2. Run the script:
+1. Run the script:
    ```bash
    ./rollout.py
    ```
-   The script will validate the rollout ID, log any screen ID changes, and archive the previous config, and optionally commit and push.
+2. The script backs up `current-rollout.json` to `archive/` before any changes are made.
+3. When prompted, make your edits to `current-rollout.json`, save, then return to the script and press Enter.
+4. The script diffs the updated file against the backup and reports any screen ID changes.
+5. Optionally commit and push.
+
+### Archive naming
+
+Archives are named `YYMMDD-N-rollout-id.json`, where `N` starts at `0` and increments for multiple archives on the same date. If the most recent archive for a given date already exists, the script will ask whether to overwrite it or save as a new version.
 
 ## Related Resources
 
