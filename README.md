@@ -19,7 +19,8 @@ aboutwelcome-rollout-configs/
 ├── ledger.md         # Human-readable historical change log, updated automatically by rollout.py
 ├── rollout.py
 ├── test_rollout.py   # Unit tests for rollout.py
-└── archive/          # Historical configs named YYMMDD-N-rollout-id.json
+├── archive/          # Historical configs named YYMMDD-N-rollout-id.json
+└── web/              # Browser tool for diffing rollout configs (see web/README.md)
 ```
 
 ## How to Update

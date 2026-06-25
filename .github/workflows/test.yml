@@ -13,3 +13,7 @@ jobs:
         with:
           python-version: "3.x"
       - run: python test_rollout.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node web/tests.js

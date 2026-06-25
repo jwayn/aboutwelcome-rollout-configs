@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>aboutwelcome Rollout Diff</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
+      background: #f9f9fb; color: #15141a; font-size: 15px; min-height: 100vh;
+    }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ── header ── */
+    .page-header {
+      background: #fff; border-bottom: 1px solid #e0e0e6;
+      padding: 0 32px; display: flex; align-items: center; gap: 16px; height: 60px;
+    }
+    .page-header-title { font-size: 16px; font-weight: 700; }
+    .page-header-sep { width: 1px; height: 20px; background: #e0e0e6; }
+    .page-header-sub { font-size: 13px; color: #5b5b66; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5b5b66; }
+    .field input[type=text] {
+      height: 30px; padding: 0 10px; border: 1.5px solid #cfcfd8; border-radius: 6px;
+      font-size: 13px; font-family: inherit; outline: none; width: 150px;
+    }
+    .field input[type=text]:focus { border-color: #0062f9; }
+    .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+      background: transparent; border: 1.5px solid #cfcfd8; border-radius: 6px;
+      font-size: 12px; font-weight: 600; color: #5b5b66; cursor: pointer; font-family: inherit;
+      transition: border-color .12s, color .12s, background .12s;
+    }
+    .btn:hover { border-color: #8f8f9d; color: #15141a; }
+    .btn.primary { background: #0062f9; border-color: #0062f9; color: #fff; }
+    .btn.primary:hover { background: #0050d1; border-color: #0050d1; color: #fff; }
+
+    /* ── layout ── */
+    .layout { display: grid; grid-template-columns: 380px 1fr; gap: 0; height: calc(100vh - 60px); }
+    .pane { overflow-y: auto; padding: 20px 24px; }
+    .pane-left { border-right: 1px solid #e0e0e6; background: #fcfcfd; }
+    .pane-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8f8f9d; margin-bottom: 14px; }
+
+    /* ── source rows ── */
+    .src-group {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: #8f8f9d; margin: 18px 0 8px;
+    }
+    .src-row, #centralRow {
+      background: #fff; border: 1.5px solid #e0e0e6; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+      transition: border-color .12s, box-shadow .12s;
+    }
+    .src-row:hover, #centralRow:hover { border-color: #cfcfd8; box-shadow: 0 1px 6px rgba(21,20,26,.06); }
+    .src-row.selected, #centralRow.selected { border-color: #0062f9; background: #f5f9ff; }
+    .src-name { font-size: 13px; font-weight: 600; color: #15141a; line-height: 1.4; }
+    .src-sub { font-size: 11px; color: #8f8f9d; margin-top: 3px; word-break: break-all; }
+    .src-sub code { color: #5b5b66; }
+    .src-meta { font-size: 11px; color: #a0a0aa; margin-top: 4px; }
+    .src-loading, .src-error, .src-empty { font-size: 12px; color: #8f8f9d; }
+    .src-error { color: #c52b4a; }
+    #centralRow { border-style: dashed; }
+
+    .badge {
+      display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; vertical-align: middle;
+    }
+    .badge-central { background: #e8f0fe; color: #0062f9; }
+    .badge-paused { background: #f0f0f4; color: #8f8f9d; }
+    .branch-tag {
+      display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 10px;
+      font-weight: 600; background: #fff3cd; color: #a67c00; font-family: ui-monospace, monospace;
+    }
+
+    /* ── right pane ── */
+    .seg { display: inline-flex; background: #f0f0f4; border-radius: 8px; padding: 2px; gap: 2px; }
+    .seg button {
+      border: none; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600;
+      color: #5b5b66; padding: 5px 14px; border-radius: 6px; cursor: pointer;
+    }
+    .seg button.active { background: #fff; color: #15141a; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .row-flex { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .hint { font-size: 12px; color: #8f8f9d; margin-bottom: 6px; }
+    textarea {
+      width: 100%; min-height: 200px; resize: vertical; padding: 12px; border: 1.5px solid #cfcfd8;
+      border-radius: 8px; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5;
+      outline: none; color: #15141a;
+    }
+    textarea:focus { border-color: #0062f9; }
+    select {
+      height: 36px; padding: 0 10px; border: 1.5px solid #cfcfd8; border-radius: 8px;
+      font-family: inherit; font-size: 13px; outline: none; max-width: 100%;
+    }
+    .paste-note { font-size: 12px; margin-top: 6px; min-height: 16px; }
+    .paste-note.ok { color: #1a8a6b; }
+    .paste-note.err { color: #c52b4a; }
+    .swap-label { font-size: 12px; color: #5b5b66; }
+    .swap-label strong { color: #15141a; }
+    .diff-error {
+      display: none; margin: 10px 0; padding: 8px 12px; border-radius: 6px;
+      background: #fdeaee; color: #c52b4a; font-size: 13px;
+    }
+
+    .out-head { display: flex; align-items: center; gap: 12px; margin: 22px 0 12px; }
+    .out-head .spacer { flex: 1; }
+    .panel {
+      background: #fff; border: 1.5px solid #e0e0e6; border-radius: 10px; padding: 18px 20px;
+      max-height: 50vh; overflow: auto;
+    }
+    /* changelog (structured) */
+    .panel code {
+      background: #f3f3f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; color: #15141a;
+      font-family: ui-monospace, monospace; word-break: break-word; white-space: pre-wrap;
+    }
+    .cl-title { font-size: 15px; font-weight: 700; color: #15141a; }
+    .cl-archive { font-size: 12px; color: #8f8f9d; margin-top: 4px; }
+    .cl-archive code { background: #f3f3f6; }
+    .cl-none { font-size: 13px; color: #1a8a6b; margin-top: 12px; }
+    .cl-section {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: #8f8f9d; margin: 20px 0 8px; padding-bottom: 5px; border-bottom: 1px solid #ececf0;
+    }
+    .cl-rows { display: flex; flex-direction: column; gap: 2px; }
+    .cl-change { padding: 6px 0; }
+    .cl-rows > .cl-change + .cl-change { border-top: 1px solid #f4f4f7; }
+    .cl-row-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cl-path {
+      font-family: ui-monospace, monospace; font-size: 12px; color: #0062f9;
+      font-weight: 600; word-break: break-all; margin-bottom: 4px;
+    }
+    .cl-val { display: flex; gap: 7px; align-items: baseline; padding: 2px 0; }
+    .cl-val .sign { flex-shrink: 0; font-weight: 700; font-family: ui-monospace, monospace; width: 10px; }
+    .cl-val.del .sign { color: #c52b4a; }
+    .cl-val.add .sign { color: #136f4f; }
+    .cl-val.del code { background: #fdecef; color: #8a1c38; }
+    .cl-val.add code { background: #e6f7ef; color: #0f5a40; }
+    .cl-pill {
+      display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .cl-pill.add { background: #e6f7ef; color: #136f4f; }
+    .cl-pill.del { background: #fdecef; color: #b3274b; }
+    .cl-pill.move { background: #fff3cd; color: #a67c00; }
+    .cl-move { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600; color: #a67c00; }
+    /* screen cards */
+    .cl-card {
+      border: 1.5px solid #e8e8ee; border-radius: 9px; padding: 10px 14px; margin-bottom: 10px;
+    }
+    .cl-card.changed { border-left: 3px solid #0062f9; }
+    .cl-card.added { border-left: 3px solid #2ac3a2; }
+    .cl-card.removed { border-left: 3px solid #e22850; }
+    .cl-card.moved { border-left: 3px solid #d9a300; }
+    .cl-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .cl-card.changed .cl-card-head, .cl-card.added .cl-card-head, .cl-card.removed .cl-card-head { margin-bottom: 0; }
+    .cl-card .cl-rows { margin-top: 8px; }
+    .cl-screen-id { font-size: 12px; font-weight: 700; background: #f3f3f6; }
+    .cl-tag {
+      display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .cl-tag.changed { background: #e8f0fe; color: #0062f9; }
+    .cl-tag.added { background: #e6f7ef; color: #136f4f; }
+    .cl-tag.removed { background: #fdecef; color: #b3274b; }
+    .cl-tag.moved { background: #fff3cd; color: #a67c00; }
+    /* raw diff */
+    .raw { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .ln-add { background: #e6f7ef; color: #136f4f; }
+    .ln-del { background: #fdecef; color: #b3274b; }
+    .ln-eq { color: #8f8f9d; }
+    .raw-same { color: #1a8a6b; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <span class="page-header-title">Rollout Diff</span>
+  <div class="page-header-sep"></div>
+  <span class="page-header-sub">aboutwelcome · Experimenter + mozilla-central</span>
+</header>
+
+<div class="layout">
+  <!-- LEFT: baseline picker -->
+  <div class="pane pane-left">
+    <div class="pane-title">Baseline (diff base)</div>
+    <div id="centralRow"><span class="src-loading">Loading mozilla-central default…</span></div>
+    <div id="baseList"></div>
+  </div>
+
+  <!-- RIGHT: compare + output -->
+  <div class="pane">
+    <div class="pane-title">Compare against</div>
+    <div class="row-flex">
+      <div class="seg" id="compareTabs">
+        <button data-cmp="paste" class="active">Paste new rollout</button>
+        <button data-cmp="pick">Pick a source</button>
+      </div>
+      <button class="btn" id="swapBtn" title="Swap diff direction">⇄ Swap direction</button>
+      <span class="swap-label" id="swapLabel"></span>
+    </div>
+
+    <div id="pasteWrap">
+      <div class="hint">Paste the <code>aboutwelcome</code> feature value (<code>{ "id", "screens", … }</code>). A full experiment or branch object is auto-unwrapped.</div>
+      <textarea id="pasteInput" placeholder='{ "id": "onboarding-rollout-…:treatment", "screens": [ … ] }'></textarea>
+      <div class="paste-note" id="pasteNote"></div>
+    </div>
+
+    <div id="pickWrap" style="display:none">
+      <div class="hint">Diff your selected baseline against another fetched source.</div>
+      <select id="pickSelect"><option value="">— choose a source —</option></select>
+    </div>
+
+    <div class="diff-error" id="diffError"></div>
+
+    <div class="row-flex" style="margin-top:14px">
+      <button class="btn primary" id="runBtn">Run diff</button>
+    </div>
+
+    <div class="out-head">
+      <div class="seg" id="outTabs">
+        <button data-out="changelog" class="active">Changelog</button>
+        <button data-out="raw">Raw diff</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" id="copyBtn">Copy</button>
+      <button class="btn" id="downloadBtn">Download .md</button>
+    </div>
+
+    <div id="changelogPanel">
+      <div class="panel" id="changelogOut"><span class="src-loading">Run a diff to generate the changelog.</span></div>
+    </div>
+    <div id="rawPanel" style="display:none">
+      <div class="panel raw" id="rawOut"><span class="src-loading">Run a diff to see the raw line diff.</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="diff.js"></script>
+<script src="sources.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

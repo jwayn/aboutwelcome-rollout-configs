@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>rollout diff web tests</title>
+  <style>
+    body { font-family: ui-monospace, monospace; font-size: 13px; padding: 24px; color: #15141a; }
+    h1 { font-size: 16px; margin-bottom: 4px; }
+    .sub { color: #8f8f9d; margin-bottom: 16px; font-family: system-ui; }
+    .pass { color: #1a8a6b; }
+    .fail { color: #c52b4a; font-weight: 700; }
+    .summary { margin-top: 16px; padding: 10px 14px; border-radius: 8px; font-weight: 700; }
+    .summary.ok { background: #e6f7ef; color: #136f4f; }
+    .summary.bad { background: #fdecef; color: #b3274b; }
+  </style>
+</head>
+<body>
+  <h1>diff.js + sources.js tests</h1>
+  <div class="sub">Serve over http (so the fixture test can read ../archive). Also runs headless: <code>node web/tests.js</code></div>
+  <div id="out"></div>
+  <div id="summary"></div>
+
+  <script src="diff.js"></script>
+  <script src="sources.js"></script>
+  <script src="tests.js"></script>
+  <script>
+    const out = document.getElementById("out");
+    let passed = 0;
+    let failed = 0;
+
+    function check(ok, message, detail = "") {
+      ok ? passed++ : failed++;
+      const line = document.createElement("div");
+      line.className = ok ? "pass" : "fail";
+      line.textContent = `${ok ? "✓" : "✗"} ${message}${ok || !detail ? "" : `  — ${detail}`}`;
+      out.append(line);
+    }
+
+    const loadJson = async (rel) => {
+      const res = await fetch(`../${rel}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${rel} (serve over http)`);
+      return res.json();
+    };
+
+    RolloutTests.runTests(check, loadJson).finally(() => {
+      const summary = document.getElementById("summary");
+      summary.className = `summary ${failed ? "bad" : "ok"}`;
+      summary.textContent = `${passed} passed, ${failed} failed`;
+    });
+  </script>
+</body>
+</html>
